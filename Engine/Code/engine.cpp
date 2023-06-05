@@ -513,9 +513,9 @@ unsigned int InitSkyboxVAO(App* app)
 }
 
 void InitPrograms(App* app) {
-	app->directPBRProgramIdx = LoadProgram(app, "shaders/pbr_direct.glsl", "PBR_DIRECT");
-	Program& directPBRProgram = app->programs[app->directPBRProgramIdx];
-	LoadProgramAttributes(directPBRProgram);
+	app->directPBRIBLProgramIdx = LoadProgram(app, "shaders/pbr_direct_ibl.glsl", "PBR_DIRECT");
+	Program& directPBRIBLProgram = app->programs[app->directPBRIBLProgramIdx];
+	LoadProgramAttributes(directPBRIBLProgram);
 
 	app->skyboxProgramIdx = LoadProgram(app, "shaders/skybox.glsl", "PBR_DIRECT");
 	Program& skyboxProgram = app->programs[app->skyboxProgramIdx];
@@ -815,7 +815,7 @@ void Render(App* app)
 	glEnable(GL_DEPTH_TEST);
 	if ((err = glGetError()) != GL_NO_ERROR) { ELOG("Error enabling depth test: %d\n", err); }
 
-	Program modelProgram = app->programs[app->directPBRProgramIdx];
+	Program modelProgram = app->programs[app->directPBRIBLProgramIdx];
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Direct PBR Shaded Model");
 
 	glUseProgram(modelProgram.handle);
