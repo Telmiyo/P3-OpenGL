@@ -118,6 +118,8 @@ struct App
 	u32 skyboxProgramIdx;
 
 	u32 whiteTexIdx;
+	u32 blackTexIdx;
+	u32 defaultNormalTexIdx;
 
 	// Mode
 	Mode mode;

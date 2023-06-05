@@ -112,7 +112,7 @@ void ProcessAssimpMaterial(App* app, aiMaterial* material, Material& myMaterial,
 	myMaterial.name = name.C_Str();
 	myMaterial.albedo = vec3(diffuseColor.r, diffuseColor.g, diffuseColor.b);
 	myMaterial.emissive = vec3(emissiveColor.r, emissiveColor.g, emissiveColor.b);
-	myMaterial.smoothness = shininess / 256.0f;
+	//myMaterial.smoothness = shininess / 256.0f;
 
 	aiString aiFilename;
 
@@ -131,25 +131,31 @@ void ProcessAssimpMaterial(App* app, aiMaterial* material, Material& myMaterial,
 	}
 
 	// Metallic map
-	if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
+	if (material->GetTextureCount(aiTextureType_SHININESS) > 0)
 	{
-		material->GetTexture(aiTextureType_SPECULAR, 0, &aiFilename);
+		material->GetTexture(aiTextureType_SHININESS, 0, &aiFilename);
 		String filename = MakeString(aiFilename.C_Str());
 		String filepath = MakePath(directory, filename);
 		myMaterial.metallicTextureIdx = LoadTexture2D(app, filepath.str);
 		if ((err = glGetError()) != GL_NO_ERROR)
 			ELOG("OpenGL error %d\n", err);
 	}
+	else {
+		myMaterial.metallicTextureIdx = app->blackTexIdx;
+	}
 
 	// Roughness map
-	if (material->GetTextureCount(aiTextureType_SHININESS) > 0)
+	if (material->GetTextureCount(aiTextureType_HEIGHT) > 0)
 	{
-		material->GetTexture(aiTextureType_SHININESS, 0, &aiFilename);
+		material->GetTexture(aiTextureType_HEIGHT, 0, &aiFilename);
 		String filename = MakeString(aiFilename.C_Str());
 		String filepath = MakePath(directory, filename);
 		myMaterial.roughnessTextureIdx = LoadTexture2D(app, filepath.str);
 		if ((err = glGetError()) != GL_NO_ERROR)
 			ELOG("OpenGL error %d\n", err);
+	}
+	else {
+		myMaterial.roughnessTextureIdx = app->blackTexIdx;
 	}
 
 	// Ambient Occlusion (AO) map
@@ -162,6 +168,9 @@ void ProcessAssimpMaterial(App* app, aiMaterial* material, Material& myMaterial,
 		if ((err = glGetError()) != GL_NO_ERROR)
 			ELOG("OpenGL error %d\n", err);
 	}
+	else {
+		myMaterial.aoTextureIdx = app->blackTexIdx;
+	}
 
 	// Normal map
 	if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
@@ -172,6 +181,9 @@ void ProcessAssimpMaterial(App* app, aiMaterial* material, Material& myMaterial,
 		myMaterial.normalsTextureIdx = LoadTexture2D(app, filepath.str);
 		if ((err = glGetError()) != GL_NO_ERROR)
 			ELOG("OpenGL error %d\n", err);
+	}
+	else {
+		myMaterial.normalsTextureIdx = app->defaultNormalTexIdx;
 	}
 
 	if ((err = glGetError()) != GL_NO_ERROR)
@@ -206,7 +218,8 @@ u32 LoadModel(App* app, const char* filename)
 		aiProcess_PreTransformVertices |
 		aiProcess_ImproveCacheLocality |
 		aiProcess_OptimizeMeshes |
-		aiProcess_SortByPType);
+		aiProcess_SortByPType
+	);
 
 	if (!scene)
 	{

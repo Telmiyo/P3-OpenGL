@@ -227,7 +227,7 @@ void main()
     }   
 
     vec3 environmentReflection = getEnvironmentReflection(N, V, roughness, metallic, F0);
-    Lo += environmentReflection;
+    // Lo += environmentReflection;
 
     vec3 ambient = vec3(0.03) * albedo * ao;
     

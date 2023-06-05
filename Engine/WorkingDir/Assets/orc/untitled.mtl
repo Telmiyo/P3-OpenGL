@@ -13,7 +13,7 @@ illum 2
 map_Bump Orco.001_normal.png
 map_Kd Orco.001_baseColor.jpg
 map_Ns Orco.001_roughness.jpg
-refl Orco.001_metallic.jpg
+map_Ks Orco.001_metallic.jpg
 
 newmtl Orco.002
 Ns 225.000000
@@ -27,7 +27,7 @@ illum 2
 map_Bump Orco.001_normal.png
 map_Kd Orco.001_baseColor.jpg
 map_Ns Orco.001_roughness.jpg
-refl Orco.001_metallic.jpg
+map_Ks Orco.001_metallic.jpg
 
 newmtl Orco_eyes.002
 Ns 225.000000
@@ -53,4 +53,4 @@ map_Bump Material.002_Normal_OpenGL.png
 map_Kd Material.002_Base_Color.png
 map_Ke Material.002_Emissive.png
 map_Ns Material.002_Roughness.png
-refl Material.002_Metallic.png
+map_Ks Material.002_Metallic.png

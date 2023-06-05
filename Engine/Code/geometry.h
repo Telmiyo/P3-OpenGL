@@ -88,7 +88,7 @@ struct Material
 	std::string name;
 	glm::vec3 albedo;
 	glm::vec3 emissive;
-	f32 smoothness;
+	f32 smoothness = 1.0f;
 	u32 albedoTextureIdx;
 	u32 normalsTextureIdx;
 	u32 metallicTextureIdx;
