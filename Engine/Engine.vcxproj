@@ -59,10 +59,14 @@
     <None Include="WorkingDir\Shaders\deferred_geometry.glsl" />
     <None Include="WorkingDir\Shaders\deferred_quad.glsl" />
     <None Include="WorkingDir\Shaders\depth.glsl" />
+    <None Include="WorkingDir\shaders\equirectangular_to_cubemap.glsl" />
+    <None Include="WorkingDir\shaders\irradiance_convolution.glsl" />
     <None Include="WorkingDir\Shaders\irradiance_map.glsl" />
     <None Include="WorkingDir\Shaders\lights.glsl" />
     <None Include="WorkingDir\Shaders\pbr_deferred_quad.glsl" />
     <None Include="WorkingDir\shaders\pbr_direct.glsl" />
+    <None Include="WorkingDir\shaders\pbr_direct_ibl.glsl" />
+    <None Include="WorkingDir\shaders\prefilter.glsl" />
     <None Include="WorkingDir\Shaders\prefilter_map.glsl" />
     <None Include="WorkingDir\shaders\skybox.glsl" />
   </ItemGroup>
