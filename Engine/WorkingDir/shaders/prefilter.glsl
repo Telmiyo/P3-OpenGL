@@ -1,34 +1,27 @@
-///////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////
-#ifdef PREFILTER_MAP
+#if defined(VERTEX)
 
-#if defined(VERTEX) ///////////////////////////////////////////////////
+layout (location = 0) in vec3 aPos;
 
-layout(location = 0) in vec3 aPosition;
+out vec3 WorldPos;
 
 uniform mat4 projection;
 uniform mat4 view;
 
-out vec3 worldPos;
-
 void main()
 {
-    worldPos = aPosition;
-    gl_Position = (projection * view * vec4(worldPos, 1.0f)).xyww;
+    WorldPos = aPos;  
+    gl_Position =  projection * view * vec4(WorldPos, 1.0);
 }
 
-#elif defined(FRAGMENT) ///////////////////////////////////////////////
+#elif defined(FRAGMENT)
 
-in vec3 worldPos;
+out vec4 FragColor;
+in vec3 WorldPos;
 
 uniform samplerCube environmentMap;
 uniform float roughness;
 
-layout(location = 0) out vec4 oColor;
-
 const float PI = 3.14159265359;
-
 // ----------------------------------------------------------------------------
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
@@ -44,6 +37,8 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
     return nom / denom;
 }
 // ----------------------------------------------------------------------------
+// http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+// efficient VanDerCorpus calculation.
 float RadicalInverse_VdC(uint bits) 
 {
      bits = (bits << 16u) | (bits >> 16u);
@@ -81,11 +76,12 @@ vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
 	vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
 	return normalize(sampleVec);
 }
-
+// ----------------------------------------------------------------------------
 void main()
-{
-    vec3 N = normalize(worldPos);
+{		
+    vec3 N = normalize(WorldPos);
     
+    // make the simplifying assumption that V equals R equals the normal 
     vec3 R = N;
     vec3 V = R;
 
@@ -95,6 +91,7 @@ void main()
     
     for(uint i = 0u; i < SAMPLE_COUNT; ++i)
     {
+        // generates a sample vector that's biased towards the preferred alignment direction (importance sampling).
         vec2 Xi = Hammersley(i, SAMPLE_COUNT);
         vec3 H = ImportanceSampleGGX(Xi, N, roughness);
         vec3 L  = normalize(2.0 * dot(V, H) * H - V);
@@ -102,12 +99,13 @@ void main()
         float NdotL = max(dot(N, L), 0.0);
         if(NdotL > 0.0)
         {
+            // sample from the environment's mip level based on roughness/pdf
             float D   = DistributionGGX(N, H, roughness);
             float NdotH = max(dot(N, H), 0.0);
             float HdotV = max(dot(H, V), 0.0);
             float pdf = D * NdotH / (4.0 * HdotV) + 0.0001; 
 
-            float resolution = 512.0; 
+            float resolution = 512.0; // resolution of source cubemap (per face)
             float saTexel  = 4.0 * PI / (6.0 * resolution * resolution);
             float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + 0.0001);
 
@@ -120,8 +118,7 @@ void main()
 
     prefilteredColor = prefilteredColor / totalWeight;
 
-    oColor = vec4(prefilteredColor, 1.0);
+    FragColor = vec4(prefilteredColor, 1.0);
 }
 
-#endif
 #endif

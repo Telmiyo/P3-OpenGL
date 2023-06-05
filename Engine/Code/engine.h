@@ -114,9 +114,12 @@ struct App
 	u32 directionalLightModel;
 	u32 sphereModel;
 
-	u32 directPBRProgramIdx;
 	u32 directPBRIBLProgramIdx;
 	u32 skyboxProgramIdx;
+	u32 equirectangularToCubemapProgramIdx;
+	u32 irradianceConvolutionProgramIdx;
+	u32 prefilterProgramIdx;
+	u32 brdfProgramIdx;
 
 	u32 whiteTexIdx;
 	u32 blackTexIdx;
@@ -152,16 +155,18 @@ struct App
 
 	std::vector<Entity> entities;
 
-	unsigned int skyboxVAO;
-	unsigned int skyboxTexture;
+	unsigned int cubeVAO = 0;
+	unsigned int cubeVBO = 0;
+
+	unsigned int quadVAO = 0;
+	unsigned int quadVBO;
 };
 
 // Functions
 void Init(App* app);
 void InitEntities(App* app);
 void InitLight(App* app);
-unsigned int InitSkybox(App* app, std::vector<String> faces);
-unsigned int InitSkyboxVAO(App* app);
+unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO, unsigned int& captureRBO, unsigned int& envCubemap, unsigned int& irradianceMap, unsigned int& prefilterMap, unsigned int& brdfLUTTexture);
 void InitPrograms(App* app);
 void InitGuiStyle();
 
@@ -189,3 +194,6 @@ mat4 TransformPositionScale(const vec3& pos, const vec3& scaleFactors);
 mat4 TransformPositionRotationScale(const vec3& pos, const vec3& rotation, const vec3& scaleFactors);
 
 Light CreateLight(App* app, LightType lightType, vec3 position, vec3 direction, vec3 color = vec3(1.0f, 1.0f, 1.0f), float intensity = 20000.0f);
+
+void RenderCube(App* app);
+void RenderQuad(App* app);
