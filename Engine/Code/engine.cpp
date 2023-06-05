@@ -898,6 +898,19 @@ void RenderModel(App* app, Entity entity, Program program)
 				ELOG("Error setting textures: %d\n", err);
 		}
 
+		glActiveTexture(GL_TEXTURE5);
+		if ((err = glGetError()) != GL_NO_ERROR)
+			ELOG("Error drawing elements: %d\n", err);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, app->skyboxTexture);
+		if ((err = glGetError()) != GL_NO_ERROR)
+			ELOG("Error drawing elements: %d\n", err);
+		GLuint skyboxLocation = glGetUniformLocation(program.handle, "skybox");
+		if ((err = glGetError()) != GL_NO_ERROR)
+			ELOG("Error drawing elements: %d\n", err);
+		glUniform1i(skyboxLocation, 5);
+		if ((err = glGetError()) != GL_NO_ERROR)
+			ELOG("Error drawing elements: %d\n", err);
+
 		Submesh& submesh = mesh.submeshes[j];
 		glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
 		if ((err = glGetError()) != GL_NO_ERROR) {

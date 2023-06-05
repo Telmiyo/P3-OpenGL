@@ -66,6 +66,7 @@ uniform sampler2D normalMap;
 uniform sampler2D metallicMap;
 uniform sampler2D roughnessMap;
 uniform sampler2D aoMap;
+uniform samplerCube skybox;
 
 struct Light
 {
@@ -157,6 +158,19 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
+vec3 getEnvironmentReflection(vec3 N, vec3 V, float roughness, float metallic, vec3 F0)
+{
+    vec3 R = reflect(-V, N);
+    vec3 envColor = textureLod(skybox, R, roughness * 8.0).rgb;
+    
+    vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), F0);
+    vec3 kD = vec3(1.0) - kS; 
+    kD *= 1.0 - metallic;    
+    vec3 specular = envColor * (kS + kD * envColor * (1.0 - kS));
+    
+    return specular;
+}
+
 // Main PBR lighting calculation
 void main()
 {       
@@ -211,6 +225,9 @@ void main()
 
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }   
+
+    vec3 environmentReflection = getEnvironmentReflection(N, V, roughness, metallic, F0);
+    Lo += environmentReflection;
 
     vec3 ambient = vec3(0.03) * albedo * ao;
     
