@@ -131,5 +131,8 @@
     <None Include="WorkingDir\shaders\pbr_direct.glsl">
       <Filter>shaders</Filter>
     </None>
+    <None Include="WorkingDir\shaders\skybox.glsl">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

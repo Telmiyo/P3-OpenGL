@@ -64,6 +64,7 @@
     <None Include="WorkingDir\Shaders\pbr_deferred_quad.glsl" />
     <None Include="WorkingDir\shaders\pbr_direct.glsl" />
     <None Include="WorkingDir\Shaders\prefilter_map.glsl" />
+    <None Include="WorkingDir\shaders\skybox.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

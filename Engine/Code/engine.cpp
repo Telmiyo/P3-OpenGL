@@ -338,6 +338,17 @@ void Init(App* app)
 	if ((err = glGetError()) != GL_NO_ERROR)
 		ELOG("OpenGL error %d\n", err);
 	InitLight(app);
+
+	std::vector<String> skyboxFaces;
+	skyboxFaces.push_back(MakeString("Assets/skybox/east.png"));
+	skyboxFaces.push_back(MakeString("Assets/skybox/west.png"));
+	skyboxFaces.push_back(MakeString("Assets/skybox/top.png"));
+	skyboxFaces.push_back(MakeString("Assets/skybox/bottom.png"));
+	skyboxFaces.push_back(MakeString("Assets/skybox/north.png"));
+	skyboxFaces.push_back(MakeString("Assets/skybox/south.png"));
+	app->skyboxTexture = InitSkybox(app, skyboxFaces);
+	app->skyboxVAO = InitSkyboxVAO(app);
+
 	InitPrograms(app);
 
 	OnResize(app);
@@ -345,15 +356,15 @@ void Init(App* app)
 
 void InitEntities(App* app)
 {
-	Entity knight;
-	knight.name = MakeString("Knight"); // Name
-	knight.worldMatrix = glm::mat4(1.0f); // worldMatrix
-	knight.worldViewProjection = glm::mat4(1.0f); // worldViewProjection
-	knight.scale = 1.f; // scale
-	knight.modelIndex = LoadModel(app, "Assets/orc/untitled.obj"); // modelIndex
+	Entity orc;
+	orc.name = MakeString("orc"); // Name
+	orc.worldMatrix = glm::mat4(1.0f); // worldMatrix
+	orc.worldViewProjection = glm::mat4(1.0f); // worldViewProjection
+	orc.scale = 1.f; // scale
+	orc.modelIndex = LoadModel(app, "Assets/orc/untitled.obj"); // modelIndex
 
 	// Positions
-	knight.setPosition(vec3(0.0f, 0.0f, 0.0f));
+	orc.setPosition(vec3(0.0f, 0.0f, 0.0f));
 
 	Entity plane;
 	plane.name = MakeString("Plane"); // Name
@@ -365,8 +376,8 @@ void InitEntities(App* app)
 	plane.setPosition(vec3(0.0f, 0.0f, 0.0f));
 
 	// Push Entities
-	app->entities.push_back(knight);
-	app->entities.push_back(plane);
+	app->entities.push_back(orc);
+	// app->entities.push_back(plane);
 }
 
 void InitLight(App* app)
@@ -378,10 +389,128 @@ void InitLight(App* app)
 	app->lights.push_back(CreateLight(app, LightType::LightType_Point, vec3(-2.5f, 3.0f, -2.5f), vec3(2.5f, -3.0f, 2.5f), vec3(1.0f, 1.0f, 1.0f)));
 }
 
+unsigned int InitSkybox(App* app, std::vector<String> faces)
+{
+	GLenum err;
+
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+	for (unsigned int i = 0; i < faces.size(); i++)
+	{
+		Image image = LoadImage(faces[i].str);
+		if (image.nchannels == 3) {
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+				0,
+				GL_RGB,
+				image.size.x,
+				image.size.y,
+				0,
+				GL_RGB,
+				GL_UNSIGNED_BYTE,
+				image.pixels);
+		}
+		else if (image.nchannels == 4) {
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+				0,
+				GL_RGBA,
+				image.size.x,
+				image.size.y,
+				0,
+				GL_RGBA,
+				GL_UNSIGNED_BYTE,
+				image.pixels);
+		}
+		else {
+			ELOG("ERROR: Texture format not supported\n");
+		}
+		if ((err = glGetError()) != GL_NO_ERROR)
+			ELOG("OpenGL error %d\n", err);
+		FreeImage(image);
+	}
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return textureID;
+}
+
+unsigned int InitSkyboxVAO(App* app)
+{
+	float skyboxVertices[] = {
+		// positions          
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f
+	};
+
+	unsigned int skyboxVAO, skyboxVBO;
+	glGenVertexArrays(1, &skyboxVAO);
+	glGenBuffers(1, &skyboxVBO);
+
+	glBindVertexArray(skyboxVAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+	glBindVertexArray(0);
+
+	return skyboxVAO;
+}
+
 void InitPrograms(App* app) {
 	app->directPBRProgramIdx = LoadProgram(app, "shaders/pbr_direct.glsl", "PBR_DIRECT");
 	Program& directPBRProgram = app->programs[app->directPBRProgramIdx];
 	LoadProgramAttributes(directPBRProgram);
+
+	app->skyboxProgramIdx = LoadProgram(app, "shaders/skybox.glsl", "PBR_DIRECT");
+	Program& skyboxProgram = app->programs[app->skyboxProgramIdx];
+	LoadProgramAttributes(skyboxProgram);
 }
 
 void InitGuiStyle() {
@@ -640,10 +769,43 @@ void Render(App* app)
 
 	glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
+	// Skybox
+	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Skybox");
+
+	glDepthFunc(GL_LEQUAL);  // Change this to GL_LEQUAL. The depth buffer will have a value of 1.0 for the skybox, so changing this allows us to still pass the depth test
+
+	glDepthMask(GL_FALSE);
+	Program skyboxProgram = app->programs[app->skyboxProgramIdx];
+	glUseProgram(skyboxProgram.handle);
+	if ((err = glGetError()) != GL_NO_ERROR) {
+		ELOG("Error using program: %d\n", err);
+	}
+
+	float znear = 0.1f;
+	float zfar = 1000.0f;
+
+	mat4 projection = glm::perspective(glm::radians(app->camera.zoom), app->camera.aspectRatio, znear, zfar);
+	mat4 view = mat4(glm::mat3(app->camera.GetViewMatrix()));
+
+	glUniformMatrix4fv(glGetUniformLocation(skyboxProgram.handle, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+	glUniformMatrix4fv(glGetUniformLocation(skyboxProgram.handle, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
+	glBindVertexArray(app->skyboxVAO);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, app->skyboxTexture);
+	glUniform1i(glGetUniformLocation(skyboxProgram.handle, "skybox"), 0); // we used GL_TEXTURE0
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glDepthMask(GL_TRUE);
+
+	glDepthFunc(GL_LESS); // Set it back to default afterwards
+
+	glPopDebugGroup();
+	if ((err = glGetError()) != GL_NO_ERROR) { ELOG("Error popping debug group: %d\n", err); }
+
+	// Model
 	glEnable(GL_DEPTH_TEST);
 	if ((err = glGetError()) != GL_NO_ERROR) { ELOG("Error enabling depth test: %d\n", err); }
 
-	// Model
 	Program modelProgram = app->programs[app->directPBRProgramIdx];
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Direct PBR Shaded Model");
 
