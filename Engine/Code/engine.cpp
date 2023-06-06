@@ -241,7 +241,7 @@ GLuint CreateTexture2DFromImage(Image image)
 	return texHandle;
 }
 
-u32 LoadTexture2D(App* app, const char* filepath)
+u32 LoadTexture2D(App* app, const char* filepath, unsigned int* width, unsigned int* height)
 {
 	GLenum err;
 
@@ -261,6 +261,9 @@ u32 LoadTexture2D(App* app, const char* filepath)
 			ELOG("OpenGL error %d\n", err);
 		tex.filepath = filepath;
 		tex.size = image.size;
+
+		if (width) *width = image.size.x;
+		if (height) *height = image.size.y;
 
 		u32 texIdx = app->textures.size();
 		app->textures.push_back(tex);
@@ -343,14 +346,6 @@ void Init(App* app)
 		ELOG("OpenGL error %d\n", err);
 	InitLight(app);
 
-	std::vector<String> skyboxFaces;
-	skyboxFaces.push_back(MakeString("Assets/skybox/east.png"));
-	skyboxFaces.push_back(MakeString("Assets/skybox/west.png"));
-	skyboxFaces.push_back(MakeString("Assets/skybox/top.png"));
-	skyboxFaces.push_back(MakeString("Assets/skybox/bottom.png"));
-	skyboxFaces.push_back(MakeString("Assets/skybox/north.png"));
-	skyboxFaces.push_back(MakeString("Assets/skybox/south.png"));
-
 	unsigned int captureFBO;
 	unsigned int captureRBO;
 
@@ -423,32 +418,10 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
 
-	if ((err = glGetError()) != GL_NO_ERROR)
-		ELOG("Error enabling depth test: %d\n", err);
-
 	stbi_set_flip_vertically_on_load(true);
-	Image skyboxImage = LoadImage(filename);
-    unsigned int hdrTexture;
-    if (skyboxImage.pixels)
-    {
-        glGenTextures(1, &hdrTexture);
-        glBindTexture(GL_TEXTURE_2D, hdrTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, skyboxImage.size.x, skyboxImage.size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, skyboxImage.pixels); // note how we specify the texture's data value to be float
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		FreeImage(skyboxImage);
-    }
-    else
-    {
-        ELOG("Failed to load image.")
-    }
-
-	if ((err = glGetError()) != GL_NO_ERROR)
-		ELOG("Error enabling depth test: %d\n", err);
+	unsigned int skyboxWidth, skyboxHeight;
+	unsigned int hdrTexture = LoadTexture2D(app, filename, &skyboxWidth, &skyboxHeight);
 
 	// pbr: setup cubemap to render to and attach to framebuffer
 	// ---------------------------------------------------------
@@ -1052,6 +1025,9 @@ void Render(App* app)
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, app->envCubemap);
+	GLuint environmentMapLocation = glGetUniformLocation(skyboxProgram.handle, "environmentMap");
+	glUniform1i(environmentMapLocation, 0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
 	RenderCube(app);
 
@@ -1155,8 +1131,8 @@ void RenderModel(App* app, Entity entity, Program program)
 		ELOG("Error unbinding vertex array: %d\n", err);
 	}
 
-	for (int i = 0; i < 8; ++i) {
-		glActiveTexture(GL_TEXTURE0 + i);
+	for (int i = 0; i < 5; ++i) {
+		glActiveTexture(GL_TEXTURE3 + i);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		if ((err = glGetError()) != GL_NO_ERROR) {
 			ELOG("Error unbinding texture at index %d: %d\n", i, err);

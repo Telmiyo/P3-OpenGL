@@ -192,7 +192,7 @@ void OnResize(App* app);
 void GenerateColorTexture(GLuint& colorAttachmentHandle, vec2 displaySize, GLint internalFormat);
 
 GLuint CreateTexture2DFromImage(Image image);
-u32 LoadTexture2D(App* app, const char* filepath);
+u32 LoadTexture2D(App* app, const char* filepath, unsigned int* width = nullptr, unsigned int* height = nullptr);
 
 mat4 TransformScale(const vec3& scaleFactors);
 mat4 TransformPositionScale(const vec3& pos, const vec3& scaleFactors);
