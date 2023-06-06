@@ -164,6 +164,7 @@ struct App
 	unsigned int irradianceMap;
 	unsigned int prefilterMap;
 	unsigned int brdfLUTTexture;
+	unsigned int envCubemap;
 };
 
 // Functions

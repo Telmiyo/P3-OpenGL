@@ -353,9 +353,8 @@ void Init(App* app)
 
 	unsigned int captureFBO;
 	unsigned int captureRBO;
-	unsigned int envCubemap;
 
-	InitSkybox(app, "Assets/skybox/digital_painting_grand_canyon.jpg", captureFBO, captureRBO, envCubemap, app->irradianceMap, app->prefilterMap, app->brdfLUTTexture);
+	InitSkybox(app, "Assets/skybox/digital_painting_grand_canyon.jpg", captureFBO, captureRBO, app->envCubemap, app->irradianceMap, app->prefilterMap, app->brdfLUTTexture);
 	
 	// app->skyboxVAO = InitSkyboxVAO(app);
 
@@ -1032,6 +1031,29 @@ void Render(App* app)
 		Entity& entity = app->entities[i];
 		RenderModel(app, entity, modelProgram);
 	}
+
+	glPopDebugGroup();
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error popping debug group: %d\n", err);
+
+	// Skybox
+	Program skyboxProgram = app->programs[app->skyboxProgramIdx];
+	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Skybox");
+
+	glUseProgram(skyboxProgram.handle);
+
+	glUniformMatrix4fv(glGetUniformLocation(skyboxProgram.handle, "projection"), 1, GL_FALSE, &projection[0][0]);
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error getting uniform: %d\n", err);
+
+	glUniformMatrix4fv(glGetUniformLocation(skyboxProgram.handle, "view"), 1, GL_FALSE, &view[0][0]);
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error getting uniform: %d\n", err);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, app->envCubemap);
+
+	RenderCube(app);
 
 	glPopDebugGroup();
 	if ((err = glGetError()) != GL_NO_ERROR)
