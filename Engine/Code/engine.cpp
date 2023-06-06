@@ -357,7 +357,7 @@ void Init(App* app)
 
 void InitEntities(App* app)
 {
-	Entity orc;
+	/*Entity orc;
 	orc.name = MakeString("orc"); // Name
 	orc.worldMatrix = glm::mat4(1.0f); // worldMatrix
 	orc.worldViewProjection = glm::mat4(1.0f); // worldViewProjection
@@ -365,14 +365,14 @@ void InitEntities(App* app)
 	orc.modelIndex = LoadModel(app, "Assets/orc/Posing.fbx"); // modelIndex
 
 	// Positions
-	orc.setPosition(vec3(0.0f, 0.0f, 0.0f));
+	orc.setPosition(vec3(0.0f, 0.0f, 0.0f));*/
 
-	/*Entity gun;
+	Entity gun;
 	gun.name = MakeString("gun"); // Name
 	gun.worldMatrix = glm::mat4(1.0f); // worldMatrix
 	gun.worldViewProjection = glm::mat4(1.0f); // worldViewProjection
 	gun.scale = 0.1f; // scale
-	gun.modelIndex = LoadModel(app, "Assets/cerberus/Cerberus_LP_V2.fbx"); // modelIndex*/
+	gun.modelIndex = LoadModel(app, "Assets/cerberus/Cerberus_LP_V2.fbx"); // modelIndex
 
 	Entity plane;
 	plane.name = MakeString("Plane"); // Name
@@ -384,8 +384,8 @@ void InitEntities(App* app)
 	plane.setPosition(vec3(0.0f, 0.0f, 0.0f));
 
 	// Push Entities
-	app->entities.push_back(orc);
-	//app->entities.push_back(gun);
+	//app->entities.push_back(orc);
+	app->entities.push_back(gun);
 }
 
 void InitLight(App* app)
