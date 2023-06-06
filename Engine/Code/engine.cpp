@@ -241,15 +241,11 @@ GLuint CreateTexture2DFromImage(Image image)
 	return texHandle;
 }
 
-u32 LoadTexture2D(App* app, const char* filepath, unsigned int* width, unsigned int* height)
+u32 LoadTexture2D(App* app, std::string filepath, unsigned int* width, unsigned int* height)
 {
 	GLenum err;
 
-	for (u32 texIdx = 0; texIdx < app->textures.size(); ++texIdx)
-		if (app->textures[texIdx].filepath == filepath)
-			return texIdx;
-
-	Image image = LoadImage(filepath);
+	Image image = LoadImage(filepath.c_str());
 	if ((err = glGetError()) != GL_NO_ERROR)
 		ELOG("OpenGL error %d\n", err);
 
@@ -349,7 +345,7 @@ void Init(App* app)
 	unsigned int captureFBO;
 	unsigned int captureRBO;
 
-	InitSkybox(app, "Assets/skybox/digital_painting_grand_canyon.jpg", captureFBO, captureRBO, app->envCubemap, app->irradianceMap, app->prefilterMap, app->brdfLUTTexture);
+	InitSkybox(app, MakeString("Assets/skybox/digital_painting_grand_canyon.png").str, captureFBO, captureRBO, app->envCubemap, app->irradianceMap, app->prefilterMap, app->brdfLUTTexture);
 	
 	// app->skyboxVAO = InitSkyboxVAO(app);
 
@@ -361,22 +357,22 @@ void Init(App* app)
 
 void InitEntities(App* app)
 {
-	/*Entity orc;
+	Entity orc;
 	orc.name = MakeString("orc"); // Name
 	orc.worldMatrix = glm::mat4(1.0f); // worldMatrix
 	orc.worldViewProjection = glm::mat4(1.0f); // worldViewProjection
-	orc.scale = 3.f; // scale
-	orc.modelIndex = LoadModel(app, "Assets/orc/untitled.obj"); // modelIndex
+	orc.scale = 0.1f; // scale
+	orc.modelIndex = LoadModel(app, "Assets/orc/Posing.fbx"); // modelIndex
 
 	// Positions
-	orc.setPosition(vec3(0.0f, 0.0f, 0.0f));*/
+	orc.setPosition(vec3(0.0f, 0.0f, 0.0f));
 
-	Entity gun;
+	/*Entity gun;
 	gun.name = MakeString("gun"); // Name
 	gun.worldMatrix = glm::mat4(1.0f); // worldMatrix
 	gun.worldViewProjection = glm::mat4(1.0f); // worldViewProjection
 	gun.scale = 0.1f; // scale
-	gun.modelIndex = LoadModel(app, "Assets/cerberus/Cerberus_LP_V2.fbx"); // modelIndex
+	gun.modelIndex = LoadModel(app, "Assets/cerberus/Cerberus_LP_V2.fbx"); // modelIndex*/
 
 	Entity plane;
 	plane.name = MakeString("Plane"); // Name
@@ -388,8 +384,8 @@ void InitEntities(App* app)
 	plane.setPosition(vec3(0.0f, 0.0f, 0.0f));
 
 	// Push Entities
-	//app->entities.push_back(orc);
-	app->entities.push_back(gun);
+	app->entities.push_back(orc);
+	//app->entities.push_back(gun);
 }
 
 void InitLight(App* app)
@@ -401,7 +397,7 @@ void InitLight(App* app)
 	app->lights.push_back(CreateLight(app, LightType::LightType_Point, vec3(-30.0f, 20.0f, -30.0f), vec3(30.0f, -20.0f, 30.0f), vec3(1.0f, 1.0f, 1.0f)));
 }
 
-unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO, unsigned int& captureRBO, unsigned int& envCubemap, unsigned int& irradianceMap, unsigned int& prefilterMap, unsigned int& brdfLUTTexture)
+unsigned int InitSkybox(App* app, std::string filename, unsigned int& captureFBO, unsigned int& captureRBO, unsigned int& envCubemap, unsigned int& irradianceMap, unsigned int& prefilterMap, unsigned int& brdfLUTTexture)
 {
 	GLenum err;
 
@@ -418,8 +414,6 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
 
-	stbi_set_flip_vertically_on_load(true);
-
 	unsigned int skyboxWidth, skyboxHeight;
 	unsigned int hdrTexture = LoadTexture2D(app, filename, &skyboxWidth, &skyboxHeight);
 
@@ -429,7 +423,7 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
 	for (unsigned int i = 0; i < 6; ++i)
 	{
-		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 512, 512, 0, GL_RGB, GL_FLOAT, nullptr);
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB8, 512, 512, 0, GL_RGB, GL_FLOAT, nullptr);
 	}
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -463,7 +457,7 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	glUniform1i(glGetUniformLocation(equirectangularToCubemapProgram.handle, "equirectangularMap"), 0);
 	glUniformMatrix4fv(glGetUniformLocation(equirectangularToCubemapProgram.handle, "projection"), 1, GL_FALSE, &captureProjection[0][0]);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, hdrTexture);
+	glBindTexture(GL_TEXTURE_2D, app->textures[hdrTexture].handle);
 
 	glViewport(0, 0, 512, 512); // don't forget to configure the viewport to the capture dimensions.
 	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
@@ -488,12 +482,12 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 		ELOG("Error enabling depth test: %d\n", err);
 
 	// pbr: create an irradiance cubemap, and re-scale capture FBO to irradiance scale.
-// --------------------------------------------------------------------------------
+	// --------------------------------------------------------------------------------
 	glGenTextures(1, &irradianceMap);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
 	for (unsigned int i = 0; i < 6; ++i)
 	{
-		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 32, 32, 0, GL_RGB, GL_FLOAT, nullptr);
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB8, 32, 32, 0, GL_RGB, GL_FLOAT, nullptr);
 	}
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -575,7 +569,7 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
 	for (unsigned int i = 0; i < 6; ++i)
 	{
-		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 128, 128, 0, GL_RGB, GL_FLOAT, nullptr);
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB8, 128, 128, 0, GL_RGB, GL_FLOAT, nullptr);
 	}
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -1013,6 +1007,8 @@ void Render(App* app)
 	Program skyboxProgram = app->programs[app->skyboxProgramIdx];
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Skybox");
 
+	glDepthFunc(GL_LEQUAL);
+
 	glUseProgram(skyboxProgram.handle);
 
 	glUniformMatrix4fv(glGetUniformLocation(skyboxProgram.handle, "projection"), 1, GL_FALSE, &projection[0][0]);
@@ -1027,9 +1023,12 @@ void Render(App* app)
 	glBindTexture(GL_TEXTURE_CUBE_MAP, app->envCubemap);
 	GLuint environmentMapLocation = glGetUniformLocation(skyboxProgram.handle, "environmentMap");
 	glUniform1i(environmentMapLocation, 0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
 	RenderCube(app);
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+	glDepthFunc(GL_LESS);
 
 	glPopDebugGroup();
 	if ((err = glGetError()) != GL_NO_ERROR)

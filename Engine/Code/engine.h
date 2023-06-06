@@ -171,7 +171,7 @@ struct App
 void Init(App* app);
 void InitEntities(App* app);
 void InitLight(App* app);
-unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO, unsigned int& captureRBO, unsigned int& envCubemap, unsigned int& irradianceMap, unsigned int& prefilterMap, unsigned int& brdfLUTTexture);
+unsigned int InitSkybox(App* app, std::string filename, unsigned int& captureFBO, unsigned int& captureRBO, unsigned int& envCubemap, unsigned int& irradianceMap, unsigned int& prefilterMap, unsigned int& brdfLUTTexture);
 void InitPrograms(App* app);
 void InitGuiStyle();
 
@@ -192,7 +192,7 @@ void OnResize(App* app);
 void GenerateColorTexture(GLuint& colorAttachmentHandle, vec2 displaySize, GLint internalFormat);
 
 GLuint CreateTexture2DFromImage(Image image);
-u32 LoadTexture2D(App* app, const char* filepath, unsigned int* width = nullptr, unsigned int* height = nullptr);
+u32 LoadTexture2D(App* app, std::string filepath, unsigned int* width = nullptr, unsigned int* height = nullptr);
 
 mat4 TransformScale(const vec3& scaleFactors);
 mat4 TransformPositionScale(const vec3& pos, const vec3& scaleFactors);
