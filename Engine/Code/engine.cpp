@@ -685,7 +685,7 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	Program& brdfProgram = app->programs[app->brdfProgramIdx];
 	glUseProgram(brdfProgram.handle);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	RenderCube(app);
+	RenderQuad(app);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
