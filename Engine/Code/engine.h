@@ -143,7 +143,7 @@ struct App
 
 	RenderTargetsMode currentRenderTargetMode;
 
-	GLuint finalRenderAttachmentHandle;
+	// GLuint finalRenderAttachmentHandle;
 
 	// Lists
 	std::vector<Texture>  textures;
@@ -160,6 +160,10 @@ struct App
 
 	unsigned int quadVAO = 0;
 	unsigned int quadVBO;
+
+	unsigned int irradianceMap;
+	unsigned int prefilterMap;
+	unsigned int brdfLUTTexture;
 };
 
 // Functions

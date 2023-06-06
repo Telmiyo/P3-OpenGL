@@ -134,5 +134,17 @@
     <None Include="WorkingDir\shaders\skybox.glsl">
       <Filter>shaders</Filter>
     </None>
+    <None Include="WorkingDir\shaders\equirectangular_to_cubemap.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="WorkingDir\shaders\irradiance_convolution.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="WorkingDir\shaders\pbr_direct_ibl.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="WorkingDir\shaders\prefilter.glsl">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

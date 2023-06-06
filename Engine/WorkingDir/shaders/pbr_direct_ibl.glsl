@@ -4,22 +4,40 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords;
 
+struct Light
+{
+    unsigned int type;
+    vec3 color;
+    vec3 direction;
+    vec3 position;
+    float intensity;
+};
+
+layout(binding = 0, std140) uniform GlobalParams
+{
+    unsigned int uRenderMode;
+    vec3         uCameraPosition;
+    unsigned int uLightCount;
+    Light        uLight[16];
+};
+
+layout(binding = 1, std140) uniform LocalParams
+{
+    mat4 uWorldMatrix;
+    mat4 uWorldViewProjectionMatrix;
+};
+
 out vec2 TexCoords;
 out vec3 WorldPos;
 out vec3 Normal;
 
-uniform mat4 projection;
-uniform mat4 view;
-uniform mat4 model;
-uniform mat3 normalMatrix;
-
 void main()
 {
     TexCoords = aTexCoords;
-    WorldPos = vec3(model * vec4(aPos, 1.0));
-    Normal = normalMatrix * aNormal;   
+    WorldPos = vec3(uWorldMatrix * vec4(aPos, 1.0));
+    Normal = mat3(transpose(inverse(uWorldMatrix))) * aNormal;
 
-    gl_Position =  projection * view * vec4(WorldPos, 1.0);
+    gl_Position = uWorldViewProjectionMatrix * vec4(WorldPos, 1.0);
 }
 
 #elif defined(FRAGMENT)
@@ -28,6 +46,29 @@ out vec4 FragColor;
 in vec2 TexCoords;
 in vec3 WorldPos;
 in vec3 Normal;
+
+struct Light
+{
+    unsigned int type;
+    vec3 color;
+    vec3 direction;
+    vec3 position;
+    float intensity;
+};
+
+layout(binding = 0, std140) uniform GlobalParams
+{
+    unsigned int uRenderMode;
+    vec3         uCameraPosition;
+    unsigned int uLightCount;
+    Light        uLight[16];
+};
+
+layout(binding = 1, std140) uniform LocalParams
+{
+    mat4 uWorldMatrix;
+    mat4 uWorldViewProjectionMatrix;
+};
 
 // material parameters
 uniform sampler2D albedoMap;
@@ -40,12 +81,6 @@ uniform sampler2D aoMap;
 uniform samplerCube irradianceMap;
 uniform samplerCube prefilterMap;
 uniform sampler2D brdfLUT;
-
-// lights
-uniform vec3 lightPositions[4];
-uniform vec3 lightColors[4];
-
-uniform vec3 camPos;
 
 const float PI = 3.14159265359;
 // ----------------------------------------------------------------------------
@@ -122,10 +157,10 @@ void main()
     float metallic = texture(metallicMap, TexCoords).r;
     float roughness = texture(roughnessMap, TexCoords).r;
     float ao = texture(aoMap, TexCoords).r;
-       
+
     // input lighting data
     vec3 N = getNormalFromMap();
-    vec3 V = normalize(camPos - WorldPos);
+    vec3 V = normalize(uCameraPosition - WorldPos);
     vec3 R = reflect(-V, N); 
 
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0 
@@ -135,14 +170,14 @@ void main()
 
     // reflectance equation
     vec3 Lo = vec3(0.0);
-    for(int i = 0; i < 4; ++i) 
+    for(int i = 0; i < uLightCount; ++i) 
     {
         // calculate per-light radiance
-        vec3 L = normalize(lightPositions[i] - WorldPos);
+        vec3 L = normalize(uLight[i].position - WorldPos);
         vec3 H = normalize(V + L);
-        float distance = length(lightPositions[i] - WorldPos);
+        float distance = length(uLight[i].position - WorldPos);
         float attenuation = 1.0 / (distance * distance);
-        vec3 radiance = lightColors[i] * attenuation;
+        vec3 radiance = uLight[i].color * attenuation * uLight[i].intensity; // Added intensity here
 
         // Cook-Torrance BRDF
         float NDF = DistributionGGX(N, H, roughness);   

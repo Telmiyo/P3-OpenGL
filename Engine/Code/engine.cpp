@@ -335,6 +335,8 @@ void Init(App* app)
 	// Rendering
 	app->currentRenderTargetMode = RenderTargetsMode::FINAL_RENDER;
 
+	InitPrograms(app);
+
 	// Load Entities & Light
 	InitEntities(app);
 	if ((err = glGetError()) != GL_NO_ERROR)
@@ -351,14 +353,14 @@ void Init(App* app)
 
 	unsigned int captureFBO;
 	unsigned int captureRBO;
+	unsigned int envCubemap;
 
-	InitSkybox(app, "Assets/skybox/digital_painting_grand_canyon.png", captureFBO, captureRBO);
+	InitSkybox(app, "Assets/skybox/digital_painting_grand_canyon.jpg", captureFBO, captureRBO, envCubemap, app->irradianceMap, app->prefilterMap, app->brdfLUTTexture);
+	
+	// app->skyboxVAO = InitSkyboxVAO(app);
 
-
-
-	app->skyboxVAO = InitSkyboxVAO(app);
-
-	InitPrograms(app);
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("OpenGL error %d\n", err);
 
 	OnResize(app);
 }
@@ -407,6 +409,11 @@ void InitLight(App* app)
 
 unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO, unsigned int& captureRBO, unsigned int& envCubemap, unsigned int& irradianceMap, unsigned int& prefilterMap, unsigned int& brdfLUTTexture)
 {
+	GLenum err;
+
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
 	// pbr: setup framebuffer
 	// ----------------------
 	glGenFramebuffers(1, &captureFBO);
@@ -417,6 +424,9 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
 
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
 	stbi_set_flip_vertically_on_load(true);
 	Image skyboxImage = LoadImage(filename);
     unsigned int hdrTexture;
@@ -424,7 +434,7 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
     {
         glGenTextures(1, &hdrTexture);
         glBindTexture(GL_TEXTURE_2D, hdrTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, skyboxImage.size.x, skyboxImage.size.y, 0, GL_RGB, GL_FLOAT, skyboxImage.pixels); // note how we specify the texture's data value to be float
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, skyboxImage.size.x, skyboxImage.size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, skyboxImage.pixels); // note how we specify the texture's data value to be float
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -438,9 +448,11 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
         ELOG("Failed to load image.")
     }
 
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
 	// pbr: setup cubemap to render to and attach to framebuffer
 	// ---------------------------------------------------------
-	unsigned int envCubemap;
 	glGenTextures(1, &envCubemap);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
 	for (unsigned int i = 0; i < 6; ++i)
@@ -452,6 +464,9 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // enable pre-filter mipmap sampling (combatting visible dots artifact)
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
 
 	// pbr: set up projection and view matrices for capturing data onto the 6 cubemap face directions
 	// ----------------------------------------------------------------------------------------------
@@ -466,11 +481,15 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
 	};
 
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
 	// pbr: convert HDR equirectangular environment map to cubemap equivalent
 	// ----------------------------------------------------------------------
-	equirectangularToCubemapShader.use();
-	equirectangularToCubemapShader.setInt("equirectangularMap", 0);
-	equirectangularToCubemapShader.setMat4("projection", captureProjection);
+	Program& equirectangularToCubemapProgram = app->programs[app->equirectangularToCubemapProgramIdx];
+	glUseProgram(equirectangularToCubemapProgram.handle);
+	glUniform1i(glGetUniformLocation(equirectangularToCubemapProgram.handle, "equirectangularMap"), 0);
+	glUniformMatrix4fv(glGetUniformLocation(equirectangularToCubemapProgram.handle, "projection"), 1, GL_FALSE, &captureProjection[0][0]);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, hdrTexture);
 
@@ -478,7 +497,7 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
 	for (unsigned int i = 0; i < 6; ++i)
 	{
-		equirectangularToCubemapShader.setMat4("view", captureViews[i]);
+		glUniformMatrix4fv(glGetUniformLocation(equirectangularToCubemapProgram.handle, "view"), 1, GL_FALSE, &captureViews[i][0][0]);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -486,9 +505,15 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
 	// then let OpenGL generate mipmaps from first mip face (combatting visible dots artifact)
 	glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
 	glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
 
 	// pbr: create an irradiance cubemap, and re-scale capture FBO to irradiance scale.
 // --------------------------------------------------------------------------------
@@ -508,25 +533,69 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
 
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
 	// pbr: solve diffuse integral by convolution to create an irradiance (cube)map.
 	// -----------------------------------------------------------------------------
-	irradianceShader.use();
-	irradianceShader.setInt("environmentMap", 0);
-	irradianceShader.setMat4("projection", captureProjection);
+	Program& irradianceConvolutionProgram = app->programs[app->irradianceConvolutionProgramIdx];
+	glUseProgram(irradianceConvolutionProgram.handle);
+
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
+	glUniform1i(glGetUniformLocation(irradianceConvolutionProgram.handle, "environmentMap"), 0);
+
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
+	glUniformMatrix4fv(glGetUniformLocation(irradianceConvolutionProgram.handle, "projection"), 1, GL_FALSE, &captureProjection[0][0]);
+
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
 
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
 	glViewport(0, 0, 32, 32); // don't forget to configure the viewport to the capture dimensions.
 	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
 	for (unsigned int i = 0; i < 6; ++i)
 	{
-		irradianceShader.setMat4("view", captureViews[i]);
+		unsigned int viewUniform = glGetUniformLocation(irradianceConvolutionProgram.handle, "view");
+		if ((err = glGetError()) != GL_NO_ERROR)
+			ELOG("Error enabling depth test: %d\n", err);
+
+		glUniformMatrix4fv(viewUniform, 1, GL_FALSE, &captureViews[i][0][0]);
+
+		if ((err = glGetError()) != GL_NO_ERROR)
+			ELOG("Error enabling depth test: %d\n", err);
+
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
+
+		if ((err = glGetError()) != GL_NO_ERROR)
+			ELOG("Error enabling depth test: %d\n", err);
+
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		if ((err = glGetError()) != GL_NO_ERROR)
+			ELOG("Error enabling depth test: %d\n", err);
+
 		RenderCube(app);
+
+		if ((err = glGetError()) != GL_NO_ERROR)
+			ELOG("Error enabling depth test: %d\n", err);
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
 
 	// pbr: create a pre-filter cubemap, and re-scale capture FBO to pre-filter scale.
 	// --------------------------------------------------------------------------------
@@ -541,14 +610,22 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // be sure to set minification filter to mip_linear 
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
 	// generate mipmaps for the cubemap so OpenGL automatically allocates the required memory.
 	glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
 	// pbr: run a quasi monte-carlo simulation on the environment lighting to create a prefilter (cube)map.
 	// ----------------------------------------------------------------------------------------------------
-	prefilterShader.use();
-	prefilterShader.setInt("environmentMap", 0);
-	prefilterShader.setMat4("projection", captureProjection);
+	Program& prefilterProgram = app->programs[app->prefilterProgramIdx];
+	glUseProgram(prefilterProgram.handle);
+	glUniform1i(glGetUniformLocation(prefilterProgram.handle, "environmentMap"), 0);
+	glUniformMatrix4fv(glGetUniformLocation(prefilterProgram.handle, "projection"), 1, GL_FALSE, &captureProjection[0][0]);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
 
@@ -564,10 +641,10 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 		glViewport(0, 0, mipWidth, mipHeight);
 
 		float roughness = (float)mip / (float)(maxMipLevels - 1);
-		prefilterShader.setFloat("roughness", roughness);
+		glUniform1f(glGetUniformLocation(prefilterProgram.handle, "roughness"), roughness);
 		for (unsigned int i = 0; i < 6; ++i)
 		{
-			prefilterShader.setMat4("view", captureViews[i]);
+			glUniformMatrix4fv(glGetUniformLocation(prefilterProgram.handle, "view"), 1, GL_FALSE, &captureViews[i][0][0]);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
 
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -576,9 +653,15 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
 	// pbr: generate a 2D LUT from the BRDF equations used.
 	// ----------------------------------------------------
 	glGenTextures(1, &brdfLUTTexture);
+
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
 
 	// pre-allocate enough memory for the LUT texture.
 	glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
@@ -589,6 +672,9 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
+
 	// then re-configure capture framebuffer object and render screen-space quad with BRDF shader.
 	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
 	glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
@@ -596,13 +682,15 @@ unsigned int InitSkybox(App* app, const char* filename, unsigned int& captureFBO
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture, 0);
 
 	glViewport(0, 0, 512, 512);
-	brdfShader.use();
+	Program& brdfProgram = app->programs[app->brdfProgramIdx];
+	glUseProgram(brdfProgram.handle);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	RenderCube(app);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error enabling depth test: %d\n", err);
 
 	return 0;
 }
@@ -889,39 +977,6 @@ void Render(App* app)
 
 	glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
-	// Skybox
-	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Skybox");
-
-	glDepthFunc(GL_LEQUAL);  // Change this to GL_LEQUAL. The depth buffer will have a value of 1.0 for the skybox, so changing this allows us to still pass the depth test
-
-	glDepthMask(GL_FALSE);
-	Program skyboxProgram = app->programs[app->skyboxProgramIdx];
-	glUseProgram(skyboxProgram.handle);
-	if ((err = glGetError()) != GL_NO_ERROR) {
-		ELOG("Error using program: %d\n", err);
-	}
-
-	float znear = 0.1f;
-	float zfar = 1000.0f;
-
-	mat4 projection = glm::perspective(glm::radians(app->camera.zoom), app->camera.aspectRatio, znear, zfar);
-	mat4 view = mat4(glm::mat3(app->camera.GetViewMatrix()));
-
-	glUniformMatrix4fv(glGetUniformLocation(skyboxProgram.handle, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-	glUniformMatrix4fv(glGetUniformLocation(skyboxProgram.handle, "view"), 1, GL_FALSE, glm::value_ptr(view));
-
-	glBindVertexArray(app->skyboxVAO);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, app->skyboxTexture);
-	glUniform1i(glGetUniformLocation(skyboxProgram.handle, "skybox"), 0); // we used GL_TEXTURE0
-	glDrawArrays(GL_TRIANGLES, 0, 36);
-	glDepthMask(GL_TRUE);
-
-	glDepthFunc(GL_LESS); // Set it back to default afterwards
-
-	glPopDebugGroup();
-	if ((err = glGetError()) != GL_NO_ERROR) { ELOG("Error popping debug group: %d\n", err); }
-
 	// Model
 	glEnable(GL_DEPTH_TEST);
 	if ((err = glGetError()) != GL_NO_ERROR) { ELOG("Error enabling depth test: %d\n", err); }
@@ -930,9 +985,47 @@ void Render(App* app)
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Direct PBR Shaded Model");
 
 	glUseProgram(modelProgram.handle);
-	if ((err = glGetError()) != GL_NO_ERROR) {
-		ELOG("Error using program: %d\n", err);
-	}
+
+	float znear = 0.1f;
+	float zfar = 1000.0f;
+
+	mat4 projection = glm::perspective(glm::radians(app->camera.zoom), app->camera.aspectRatio, znear, zfar);
+	mat4 view = mat4(glm::mat3(app->camera.GetViewMatrix()));
+
+	unsigned int projectionUniform = glGetUniformLocation(modelProgram.handle, "projection");
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error getting uniform: %d\n", err);
+	glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, &projection[0][0]);
+	if ((err = glGetError()) != GL_NO_ERROR) 
+		ELOG("Error setting uniform: %d\n", err);
+	glUniformMatrix4fv(glGetUniformLocation(modelProgram.handle, "view"), 1, GL_FALSE, &view[0][0]);
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error getting uniform: %d\n", err);
+	glm::mat4 model = glm::mat4(1.0f);
+	glUniformMatrix4fv(glGetUniformLocation(modelProgram.handle, "model"), 1, GL_FALSE, &model[0][0]);
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error getting uniform: %d\n", err);
+	glUniformMatrix3fv(glGetUniformLocation(modelProgram.handle, "normalMatrix"), 1, GL_FALSE, &glm::transpose(glm::inverse(glm::mat3(model)))[0][0]);
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error getting uniform: %d\n", err);
+
+	// IBL
+	GLint irradMapLocation = glGetUniformLocation(modelProgram.handle, "irradianceMap");
+	GLint prefilterMapLocation = glGetUniformLocation(modelProgram.handle, "prefilterMap");
+	GLint brdfLUTLocation = glGetUniformLocation(modelProgram.handle, "brdfLUT");
+
+	// Bind the textures to texture units
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, app->irradianceMap);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, app->prefilterMap);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, app->brdfLUTTexture);
+
+	// Set the uniform values
+	glUniform1i(irradMapLocation, 0);     // irradianceMap uses texture unit 0
+	glUniform1i(prefilterMapLocation, 1); // prefilterMap uses texture unit 1
+	glUniform1i(brdfLUTLocation, 2);      // brdfLUT uses texture unit 2
 
 	for (u64 i = 0; i < app->entities.size(); ++i)
 	{
@@ -941,7 +1034,8 @@ void Render(App* app)
 	}
 
 	glPopDebugGroup();
-	if ((err = glGetError()) != GL_NO_ERROR) { ELOG("Error popping debug group: %d\n", err); }
+	if ((err = glGetError()) != GL_NO_ERROR)
+		ELOG("Error popping debug group: %d\n", err);
 }
 
 void RenderModel(App* app, Entity entity, Program program)
@@ -968,7 +1062,7 @@ void RenderModel(App* app, Entity entity, Program program)
 
 		if (submeshMaterial.albedoTextureIdx < app->textures.size())
 		{
-			glActiveTexture(GL_TEXTURE0);
+			glActiveTexture(GL_TEXTURE3);
 			if ((err = glGetError()) != GL_NO_ERROR)
 				ELOG("Error setting textures: %d\n", err);
 			glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
@@ -977,57 +1071,47 @@ void RenderModel(App* app, Entity entity, Program program)
 			GLuint textureLocation = glGetUniformLocation(program.handle, "albedoMap");
 			if ((err = glGetError()) != GL_NO_ERROR)
 				ELOG("Error setting textures: %d\n", err);
-			glUniform1i(textureLocation, 0);
-			if ((err = glGetError()) != GL_NO_ERROR)
-				ELOG("Error setting textures: %d\n", err);
-		}
-
-		if (submeshMaterial.normalsTextureIdx < app->textures.size()) {
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.normalsTextureIdx].handle);
-			GLuint textureLocation = glGetUniformLocation(program.handle, "normalMap");
-			glUniform1i(textureLocation, 1);
-			if ((err = glGetError()) != GL_NO_ERROR)
-				ELOG("Error setting textures: %d\n", err);
-		}
-
-		if (submeshMaterial.metallicTextureIdx < app->textures.size()) {
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.metallicTextureIdx].handle);
-			GLuint textureLocation = glGetUniformLocation(program.handle, "metallicMap");
-			glUniform1i(textureLocation, 2);
-			if ((err = glGetError()) != GL_NO_ERROR)
-				ELOG("Error setting textures: %d\n", err);
-		}
-
-		if (submeshMaterial.roughnessTextureIdx < app->textures.size()) {
-			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.roughnessTextureIdx].handle);
-			GLuint textureLocation = glGetUniformLocation(program.handle, "roughnessMap");
 			glUniform1i(textureLocation, 3);
 			if ((err = glGetError()) != GL_NO_ERROR)
 				ELOG("Error setting textures: %d\n", err);
 		}
 
-		if (submeshMaterial.aoTextureIdx < app->textures.size()) {
+		if (submeshMaterial.normalsTextureIdx < app->textures.size()) {
 			glActiveTexture(GL_TEXTURE4);
-			glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.aoTextureIdx].handle);
-			GLuint textureLocation = glGetUniformLocation(program.handle, "aoMap");
+			glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.normalsTextureIdx].handle);
+			GLuint textureLocation = glGetUniformLocation(program.handle, "normalMap");
 			glUniform1i(textureLocation, 4);
 			if ((err = glGetError()) != GL_NO_ERROR)
 				ELOG("Error setting textures: %d\n", err);
 		}
 
-		glActiveTexture(GL_TEXTURE5);
-		if ((err = glGetError()) != GL_NO_ERROR)
-			ELOG("Error drawing elements: %d\n", err);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, app->skyboxTexture);
-		if ((err = glGetError()) != GL_NO_ERROR)
-			ELOG("Error drawing elements: %d\n", err);
-		GLuint skyboxLocation = glGetUniformLocation(program.handle, "skybox");
-		if ((err = glGetError()) != GL_NO_ERROR)
-			ELOG("Error drawing elements: %d\n", err);
-		glUniform1i(skyboxLocation, 5);
+		if (submeshMaterial.metallicTextureIdx < app->textures.size()) {
+			glActiveTexture(GL_TEXTURE5);
+			glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.metallicTextureIdx].handle);
+			GLuint textureLocation = glGetUniformLocation(program.handle, "metallicMap");
+			glUniform1i(textureLocation, 5);
+			if ((err = glGetError()) != GL_NO_ERROR)
+				ELOG("Error setting textures: %d\n", err);
+		}
+
+		if (submeshMaterial.roughnessTextureIdx < app->textures.size()) {
+			glActiveTexture(GL_TEXTURE6);
+			glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.roughnessTextureIdx].handle);
+			GLuint textureLocation = glGetUniformLocation(program.handle, "roughnessMap");
+			glUniform1i(textureLocation, 6);
+			if ((err = glGetError()) != GL_NO_ERROR)
+				ELOG("Error setting textures: %d\n", err);
+		}
+
+		if (submeshMaterial.aoTextureIdx < app->textures.size()) {
+			glActiveTexture(GL_TEXTURE7);
+			glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.aoTextureIdx].handle);
+			GLuint textureLocation = glGetUniformLocation(program.handle, "aoMap");
+			glUniform1i(textureLocation, 7);
+			if ((err = glGetError()) != GL_NO_ERROR)
+				ELOG("Error setting textures: %d\n", err);
+		}
+
 		if ((err = glGetError()) != GL_NO_ERROR)
 			ELOG("Error drawing elements: %d\n", err);
 
@@ -1049,7 +1133,7 @@ void RenderModel(App* app, Entity entity, Program program)
 		ELOG("Error unbinding vertex array: %d\n", err);
 	}
 
-	for (int i = 0; i < 5; ++i) {
+	for (int i = 0; i < 8; ++i) {
 		glActiveTexture(GL_TEXTURE0 + i);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		if ((err = glGetError()) != GL_NO_ERROR) {
@@ -1177,7 +1261,7 @@ void OnResize(App* app)
 {
 	app->camera.aspectRatio = (float)app->displaySize.x / (float)app->displaySize.y;
 
-	GenerateColorTexture(app->finalRenderAttachmentHandle, app->displaySize, GL_RGBA16F);
+	/*GenerateColorTexture(app->finalRenderAttachmentHandle, app->displaySize, GL_RGBA16F);
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, app->displaySize.x, app->displaySize.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1212,7 +1296,7 @@ void OnResize(App* app)
 		}
 	}
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
 }
 
 void GenerateColorTexture(GLuint& colorAttachmentHandle, vec2 displaySize, GLint internalFormat)
