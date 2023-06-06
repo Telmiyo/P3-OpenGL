@@ -122,6 +122,7 @@ struct App
 	u32 brdfProgramIdx;
 
 	u32 whiteTexIdx;
+	u32 greyTexIdx;
 	u32 blackTexIdx;
 	u32 defaultNormalTexIdx;
 
@@ -198,7 +199,7 @@ mat4 TransformScale(const vec3& scaleFactors);
 mat4 TransformPositionScale(const vec3& pos, const vec3& scaleFactors);
 mat4 TransformPositionRotationScale(const vec3& pos, const vec3& rotation, const vec3& scaleFactors);
 
-Light CreateLight(App* app, LightType lightType, vec3 position, vec3 direction, vec3 color = vec3(1.0f, 1.0f, 1.0f), float intensity = 20000.0f);
+Light CreateLight(App* app, LightType lightType, vec3 position, vec3 direction, vec3 color = vec3(1.0f, 1.0f, 1.0f), float intensity = 60000.0f);
 
 void RenderCube(App* app);
 void RenderQuad(App* app);

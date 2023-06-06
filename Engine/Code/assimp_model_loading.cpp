@@ -131,9 +131,9 @@ void ProcessAssimpMaterial(App* app, aiMaterial* material, Material& myMaterial,
 	}
 
 	// Metallic map
-	if (material->GetTextureCount(aiTextureType_SHININESS) > 0)
+	if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
 	{
-		material->GetTexture(aiTextureType_SHININESS, 0, &aiFilename);
+		material->GetTexture(aiTextureType_SPECULAR, 0, &aiFilename);
 		String filename = MakeString(aiFilename.C_Str());
 		String filepath = MakePath(directory, filename);
 		myMaterial.metallicTextureIdx = LoadTexture2D(app, filepath.str);
@@ -145,9 +145,9 @@ void ProcessAssimpMaterial(App* app, aiMaterial* material, Material& myMaterial,
 	}
 
 	// Roughness map
-	if (material->GetTextureCount(aiTextureType_HEIGHT) > 0)
+	if (material->GetTextureCount(aiTextureType_SHININESS) > 0)
 	{
-		material->GetTexture(aiTextureType_HEIGHT, 0, &aiFilename);
+		material->GetTexture(aiTextureType_SHININESS, 0, &aiFilename);
 		String filename = MakeString(aiFilename.C_Str());
 		String filepath = MakePath(directory, filename);
 		myMaterial.roughnessTextureIdx = LoadTexture2D(app, filepath.str);

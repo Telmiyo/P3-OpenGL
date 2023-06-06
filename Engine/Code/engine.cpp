@@ -328,6 +328,7 @@ void Init(App* app)
 	}
 
 	app->whiteTexIdx = LoadTexture2D(app, "color_white.png");
+	app->greyTexIdx = LoadTexture2D(app, "color_grey.png");
 	app->blackTexIdx = LoadTexture2D(app, "color_black.png");
 	app->defaultNormalTexIdx = LoadTexture2D(app, "color_normal.png");
 
@@ -357,7 +358,7 @@ void Init(App* app)
 
 void InitEntities(App* app)
 {
-	/*Entity orc;
+	Entity orc;
 	orc.name = MakeString("orc"); // Name
 	orc.worldMatrix = glm::mat4(1.0f); // worldMatrix
 	orc.worldViewProjection = glm::mat4(1.0f); // worldViewProjection
@@ -365,7 +366,7 @@ void InitEntities(App* app)
 	orc.modelIndex = LoadModel(app, "Assets/orc/Posing.fbx"); // modelIndex
 
 	// Positions
-	orc.setPosition(vec3(0.0f, 0.0f, 0.0f));*/
+	orc.setPosition(vec3(5.0f, 0.0f, 0.0f));
 
 	Entity gun;
 	gun.name = MakeString("gun"); // Name
@@ -384,17 +385,17 @@ void InitEntities(App* app)
 	plane.setPosition(vec3(0.0f, 0.0f, 0.0f));
 
 	// Push Entities
-	//app->entities.push_back(orc);
+	app->entities.push_back(orc);
 	app->entities.push_back(gun);
 }
 
 void InitLight(App* app)
 {
 	//Point
-	app->lights.push_back(CreateLight(app, LightType::LightType_Point, vec3(30.0f, 20.0f, 30.0f), vec3(-30.0f, -20.0f, -30.0f), vec3(1.0f, 1.0f, 1.0f)));
-	app->lights.push_back(CreateLight(app, LightType::LightType_Point, vec3(-30.0f, 20.0f, 30.0f), vec3(30.0f, -20.0f, -30.0f), vec3(1.0f, 1.0f, 1.0f)));
-	app->lights.push_back(CreateLight(app, LightType::LightType_Point, vec3(30.0f, 20.0f, -30.0f), vec3(-30.0f, -20.0f, 30.0f), vec3(1.0f, 1.0f, 1.0f)));
-	app->lights.push_back(CreateLight(app, LightType::LightType_Point, vec3(-30.0f, 20.0f, -30.0f), vec3(30.0f, -20.0f, 30.0f), vec3(1.0f, 1.0f, 1.0f)));
+	app->lights.push_back(CreateLight(app, LightType::LightType_Point, vec3(70.0f, 100.0f, 70.0f), vec3(-70.0f, -100.0f, -70.0f), vec3(1.0f, 1.0f, 1.0f)));
+	app->lights.push_back(CreateLight(app, LightType::LightType_Point, vec3(-70.0f, 100.0f, 70.0f), vec3(70.0f, -100.0f, -70.0f), vec3(1.0f, 1.0f, 1.0f)));
+	app->lights.push_back(CreateLight(app, LightType::LightType_Point, vec3(70.0f, 100.0f, -70.0f), vec3(-70.0f, -100.0f, 70.0f), vec3(1.0f, 1.0f, 1.0f)));
+	app->lights.push_back(CreateLight(app, LightType::LightType_Point, vec3(-70.0f, 100.0f, -70.0f), vec3(70.0f, -100.0f, 70.0f), vec3(1.0f, 1.0f, 1.0f)));
 }
 
 unsigned int InitSkybox(App* app, std::string filename, unsigned int& captureFBO, unsigned int& captureRBO, unsigned int& envCubemap, unsigned int& irradianceMap, unsigned int& prefilterMap, unsigned int& brdfLUTTexture)
