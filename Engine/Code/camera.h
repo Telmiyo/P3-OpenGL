@@ -14,6 +14,10 @@ enum Camera_Movement {
 	CAMERA_RIGHT
 };
 
+enum Camera_Mode {
+	FREE,
+	GUI,
+};
 
 class Camera
 {
@@ -29,6 +33,9 @@ public:
 	void Update();
 	void UpdateKeyboard(Camera_Movement direction, float deltaTime);
 	void UpdateMouse(float xoffset, float yoffset, GLboolean constrainPitch = true);
+	void UpdateGUI();
+
+	void ResetTransform();
 
 	// Properties
 	vec3 position;
@@ -49,7 +56,7 @@ public:
 	float camDist = 25.0f;
 	float camHeight = 0.0f;
 
-	bool freeCam = false;
+	Camera_Mode target;
 };
 
 #endif

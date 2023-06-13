@@ -305,7 +305,7 @@ void Init(App* app)
 	}
 
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-	
+
 	app->camera = Camera(vec3(-1.0f, 1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), 0.0f, 0.0f);
 	app->camera.pitch = 0.0f;
 	app->camera.aspectRatio = (float)app->displaySize.x / (float)app->displaySize.y;
@@ -347,7 +347,7 @@ void Init(App* app)
 	unsigned int captureRBO;
 
 	InitSkybox(app, MakeString("Assets/skybox/digital_painting_grand_canyon.png").str, captureFBO, captureRBO, app->envCubemap, app->irradianceMap, app->prefilterMap, app->brdfLUTTexture);
-	
+
 	// app->skyboxVAO = InitSkyboxVAO(app);
 
 	if ((err = glGetError()) != GL_NO_ERROR)
@@ -775,22 +775,22 @@ void Gui(App* app)
 
 	ImGui::Text("Camera:");
 
-	ImGui::Checkbox("Free Camera", &app->camera.freeCam);
+	const char* cameraTargetNames[] = { "FREE", "GUI" }; // Names corresponding to enum values
+	Camera_Mode lastTarget = app->camera.target;
 
-	/*if (app->camera.freeCam == true)
+	ImGui::Combo("Camera Target", reinterpret_cast<int*>(&app->camera.target), cameraTargetNames, 2);
+
+	if(lastTarget == Camera_Mode::GUI && lastTarget != app->camera.target)
 	{
-		ILOG("Free camera is true");
+		app->camera.ResetTransform();
 	}
-	else
-	{
-		ILOG("Free camera is false");
-	}*/
 
-	if (!app->camera.freeCam)
+	if (app->camera.target == Camera_Mode::GUI)
 	{
 		ImGui::SliderAngle("Rotation##camera", &app->camera.alpha);
 		ImGui::SliderFloat("Distance##camera", &app->camera.camDist, 1.0f, 100.0f);
 		ImGui::SliderFloat("Height##camera", &app->camera.camHeight, -50.0f, 50.0f);
+		app->camera.UpdateGUI();
 	}
 
 	ImGui::Dummy(ImVec2(0.0f, 10.0f));
@@ -942,23 +942,37 @@ void Update(App* app)
 
 void UpdateInput(App* app)
 {
-	if (app->input.keys[K_W] == BUTTON_PRESSED) {
-		app->camera.UpdateKeyboard(Camera_Movement::CAMERA_FORWARD, app->deltaTime);
+	switch (app->camera.target)
+	{
+	case GUI:
+	{
+		break;
 	}
-	if (app->input.keys[K_A] == BUTTON_PRESSED) {
-		app->camera.UpdateKeyboard(Camera_Movement::CAMERA_LEFT, app->deltaTime);
+	case FREE:
+	{
+		if (app->input.keys[K_W] == BUTTON_PRESSED) {
+			app->camera.UpdateKeyboard(Camera_Movement::CAMERA_FORWARD, app->deltaTime);
+		}
+		if (app->input.keys[K_A] == BUTTON_PRESSED) {
+			app->camera.UpdateKeyboard(Camera_Movement::CAMERA_LEFT, app->deltaTime);
+		}
+		if (app->input.keys[K_S] == BUTTON_PRESSED) {
+			app->camera.UpdateKeyboard(Camera_Movement::CAMERA_BACKWARD, app->deltaTime);
+		}
+		if (app->input.keys[K_D] == BUTTON_PRESSED) {
+			app->camera.UpdateKeyboard(Camera_Movement::CAMERA_RIGHT, app->deltaTime);
+		}
+
+		if (app->input.mouseButtons[LEFT] == BUTTON_PRESSED || app->input.mouseButtons[RIGHT] == BUTTON_PRESSED)
+		{
+			app->camera.UpdateMouse(app->input.mouseDelta.x, -app->input.mouseDelta.y);
+		}
+		break;
 	}
-	if (app->input.keys[K_S] == BUTTON_PRESSED) {
-		app->camera.UpdateKeyboard(Camera_Movement::CAMERA_BACKWARD, app->deltaTime);
-	}
-	if (app->input.keys[K_D] == BUTTON_PRESSED) {
-		app->camera.UpdateKeyboard(Camera_Movement::CAMERA_RIGHT, app->deltaTime);
+	default:
+		break;
 	}
 
-	if (app->input.mouseButtons[LEFT] == BUTTON_PRESSED || app->input.mouseButtons[RIGHT] == BUTTON_PRESSED)
-	{
-		app->camera.UpdateMouse(app->input.mouseDelta.x, -app->input.mouseDelta.y);
-	}
 
 }
 
@@ -990,7 +1004,7 @@ void Render(App* app)
 	if ((err = glGetError()) != GL_NO_ERROR)
 		ELOG("Error getting uniform: %d\n", err);
 	glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, &projection[0][0]);
-	if ((err = glGetError()) != GL_NO_ERROR) 
+	if ((err = glGetError()) != GL_NO_ERROR)
 		ELOG("Error setting uniform: %d\n", err);
 	glUniformMatrix4fv(glGetUniformLocation(modelProgram.handle, "view"), 1, GL_FALSE, &view[0][0]);
 	if ((err = glGetError()) != GL_NO_ERROR)
