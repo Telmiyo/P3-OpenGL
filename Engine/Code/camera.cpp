@@ -16,7 +16,7 @@ Camera::Camera()
 	camDist = 25.0f;
 	camHeight = 0.0f;
 
-	target = Camera_Mode::FREE;
+	mode = Camera_Mode::FREE;
 }
 
 Camera::Camera(vec3 _position, vec3 _up, float _yaw, float _pitch) : front(vec3(0.0f, 0.0f, -1.0f)), movementSpeed(2.5f), mouseSensitivity(0.1f), zoom(75.0f)
@@ -30,7 +30,7 @@ Camera::Camera(vec3 _position, vec3 _up, float _yaw, float _pitch) : front(vec3(
 	camDist = 25.0f;
 	camHeight = 0.0f;
 
-	target = Camera_Mode::FREE;
+	mode = Camera_Mode::FREE;
 	Update();
 }
 

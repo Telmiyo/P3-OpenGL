@@ -56,7 +56,7 @@ public:
 	float camDist = 25.0f;
 	float camHeight = 0.0f;
 
-	Camera_Mode target;
+	Camera_Mode mode;
 };
 
 #endif

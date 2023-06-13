@@ -143,6 +143,7 @@ struct App
 	GLuint framebufferHandle;	
 
 	RenderTargetsMode currentRenderTargetMode;
+	RenderMode currentRenderMode;
 
 	// GLuint finalRenderAttachmentHandle;
 

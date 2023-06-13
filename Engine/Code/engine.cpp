@@ -775,17 +775,15 @@ void Gui(App* app)
 
 	ImGui::Text("Camera:");
 
-	const char* cameraTargetNames[] = { "FREE", "GUI" }; // Names corresponding to enum values
-	Camera_Mode lastTarget = app->camera.target;
+	const char* cameraModeNames[] = { "FREE", "GUI" }; // Names corresponding to enum values
+	Camera_Mode lastTarget = app->camera.mode;
 
-	ImGui::Combo("Camera Target", reinterpret_cast<int*>(&app->camera.target), cameraTargetNames, 2);
+	ImGui::Combo("Camera Mode", reinterpret_cast<int*>(&app->camera.mode), cameraModeNames, 2);
 
-	if(lastTarget == Camera_Mode::GUI && lastTarget != app->camera.target)
-	{
-		app->camera.ResetTransform();
-	}
+	if(lastTarget != app->camera.mode)	app->camera.ResetTransform();
+	
 
-	if (app->camera.target == Camera_Mode::GUI)
+	if (app->camera.mode == Camera_Mode::GUI)
 	{
 		ImGui::SliderAngle("Rotation##camera", &app->camera.alpha);
 		ImGui::SliderFloat("Distance##camera", &app->camera.camDist, 1.0f, 100.0f);
@@ -793,9 +791,14 @@ void Gui(App* app)
 		app->camera.UpdateGUI();
 	}
 
+
 	ImGui::Dummy(ImVec2(0.0f, 10.0f));
 	ImGui::Separator();
 	ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+	const char* renderModeNames[] = { "FORWARD", "DEFERRED" }; // Names corresponding to enum values
+
+	ImGui::Combo("Render Mode", reinterpret_cast<int*>(&app->currentRenderMode), renderModeNames, 2);
 
 	ImGui::Dummy(ImVec2(0.0f, 10.0f));
 	ImGui::Separator();
@@ -942,7 +945,7 @@ void Update(App* app)
 
 void UpdateInput(App* app)
 {
-	switch (app->camera.target)
+	switch (app->camera.mode)
 	{
 	case GUI:
 	{
