@@ -44,6 +44,12 @@ public:
 	float movementSpeed = 0.5f;
 	float mouseSensitivity = 0.5f;
 	float zoom = 0.5f;
+
+	float alpha = PI / 2.0f;
+	float camDist = 25.0f;
+	float camHeight = 0.0f;
+
+	bool freeCam = false;
 };
 
 #endif

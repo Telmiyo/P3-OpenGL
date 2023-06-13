@@ -305,7 +305,7 @@ void Init(App* app)
 	}
 
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
+	
 	app->camera = Camera(vec3(-1.0f, 1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), 0.0f, 0.0f);
 	app->camera.pitch = 0.0f;
 	app->camera.aspectRatio = (float)app->displaySize.x / (float)app->displaySize.y;
@@ -769,6 +769,33 @@ void Gui(App* app)
 		ImGui::EndCombo();
 	}
 
+	ImGui::Dummy(ImVec2(0.0f, 10.0f));
+	ImGui::Separator();
+	ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+	ImGui::Text("Camera:");
+
+	ImGui::Checkbox("Free Camera", &app->camera.freeCam);
+
+	/*if (app->camera.freeCam == true)
+	{
+		ILOG("Free camera is true");
+	}
+	else
+	{
+		ILOG("Free camera is false");
+	}*/
+
+	if (!app->camera.freeCam)
+	{
+		ImGui::SliderAngle("Rotation##camera", &app->camera.alpha);
+		ImGui::SliderFloat("Distance##camera", &app->camera.camDist, 1.0f, 100.0f);
+		ImGui::SliderFloat("Height##camera", &app->camera.camHeight, -50.0f, 50.0f);
+	}
+
+	ImGui::Dummy(ImVec2(0.0f, 10.0f));
+	ImGui::Separator();
+	ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
 	ImGui::Dummy(ImVec2(0.0f, 10.0f));
 	ImGui::Separator();

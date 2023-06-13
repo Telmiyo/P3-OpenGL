@@ -11,6 +11,12 @@ Camera::Camera()
 	movementSpeed = 2.5f;
 	mouseSensitivity = 0.1f;
 	zoom = 45.0f;
+
+	alpha = PI / 2.0f;
+	camDist = 25.0f;
+	camHeight = 0.0f;
+
+	freeCam = false;
 }
 
 Camera::Camera(vec3 _position, vec3 _up, float _yaw, float _pitch) : front(vec3(0.0f, 0.0f, -1.0f)), movementSpeed(2.5f), mouseSensitivity(0.1f), zoom(75.0f)
@@ -19,6 +25,12 @@ Camera::Camera(vec3 _position, vec3 _up, float _yaw, float _pitch) : front(vec3(
 	worldUp = _up;
 	yaw = _yaw;
 	pitch = _pitch;
+
+	alpha = PI / 2.0f;
+	camDist = 25.0f;
+	camHeight = 0.0f;
+
+	freeCam = false;
 	Update();
 }
 
@@ -41,15 +53,24 @@ void Camera::Update()
 
 void Camera::UpdateKeyboard(Camera_Movement direction, float deltaTime)
 {
-	float velocity = movementSpeed * deltaTime;
-	if (direction == CAMERA_FORWARD)
-		position += front * velocity;
-	if (direction == CAMERA_BACKWARD)
-		position -= front * velocity;
-	if (direction == CAMERA_LEFT)
-		position -= right * velocity;
-	if (direction == CAMERA_RIGHT)
-		position += right * velocity;
+	if (!freeCam)
+	{
+		position = camDist * glm::vec3(cos(alpha), camHeight, sin(alpha));
+		front = glm::vec3(0) - position;
+	}
+	else
+	{
+		ILOG("Camera free!");
+		float velocity = movementSpeed * deltaTime;
+		if (direction == CAMERA_FORWARD)
+			position += front * velocity;
+		if (direction == CAMERA_BACKWARD)
+			position -= front * velocity;
+		if (direction == CAMERA_LEFT)
+			position -= right * velocity;
+		if (direction == CAMERA_RIGHT)
+			position += right * velocity;
+	}
 }
 
 void Camera::UpdateMouse(float xoffset, float yoffset, GLboolean constrainPitch)
