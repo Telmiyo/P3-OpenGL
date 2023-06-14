@@ -115,6 +115,7 @@ struct App
 	u32 sphereModel;
 
 	u32 directPBRIBLProgramIdx;
+	u32 deferredGeometryProgramIdx;
 	u32 skyboxProgramIdx;
 	u32 equirectangularToCubemapProgramIdx;
 	u32 irradianceConvolutionProgramIdx;

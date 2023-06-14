@@ -667,6 +667,10 @@ void InitPrograms(App* app) {
 	Program& directPBRIBLProgram = app->programs[app->directPBRIBLProgramIdx];
 	LoadProgramAttributes(directPBRIBLProgram);
 
+	app->deferredGeometryProgramIdx = LoadProgram(app, "shaders/deferred_geometry.glsl", "DEFERRED_GEOMETRY");
+	Program& deferredGeomtryProgram = app->programs[app->deferredGeometryProgramIdx];
+	LoadProgramAttributes(deferredGeomtryProgram);
+
 	app->skyboxProgramIdx = LoadProgram(app, "shaders/skybox.glsl", "SKYBOX");
 	Program& skyboxProgram = app->programs[app->skyboxProgramIdx];
 	LoadProgramAttributes(skyboxProgram);
@@ -799,7 +803,7 @@ void Gui(App* app)
 	const char* renderModeNames[] = { "FORWARD", "DEFERRED" }; // Names corresponding to enum values
 
 	ImGui::Combo("Render Mode", reinterpret_cast<int*>(&app->currentRenderMode), renderModeNames, 2);
-
+	
 	ImGui::Dummy(ImVec2(0.0f, 10.0f));
 	ImGui::Separator();
 	ImGui::Dummy(ImVec2(0.0f, 10.0f));
@@ -992,8 +996,16 @@ void Render(App* app)
 	glEnable(GL_DEPTH_TEST);
 	if ((err = glGetError()) != GL_NO_ERROR) { ELOG("Error enabling depth test: %d\n", err); }
 
-	Program modelProgram = app->programs[app->directPBRIBLProgramIdx];
-	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Direct PBR Shaded Model");
+	Program modelProgram = app->programs[app->deferredGeometryProgramIdx];
+	if (app->currentRenderMode == RenderMode::FORWARD)
+	{
+		modelProgram = app->programs[app->directPBRIBLProgramIdx];
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Direct PBR Shaded Model");
+	}
+	else
+	{
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Deferred Shaded model");
+	}
 
 	glUseProgram(modelProgram.handle);
 
