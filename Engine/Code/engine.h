@@ -97,7 +97,7 @@ struct App
 	// Loop
 	f32  deltaTime;
 	bool isRunning;
-
+	bool skyBox = false;
 	// Input
 	Input input;
 

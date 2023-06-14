@@ -828,6 +828,10 @@ void Gui(App* app)
 		}
 		ImGui::TreePop();
 	}
+	
+	ImGui::Dummy(ImVec2(0.0f, 5.0f));
+	
+	ImGui::Checkbox("Show Skybox", &app->skyBox);
 
 	ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
@@ -1061,25 +1065,28 @@ void Render(App* app)
 		ELOG("Error popping debug group: %d\n", err);
 
 	// Skybox
-	Program skyboxProgram = app->programs[app->skyboxProgramIdx];
-	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Skybox");
+	if (app->skyBox == true)
+	{
+		Program skyboxProgram = app->programs[app->skyboxProgramIdx];
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Skybox");
 
-	glDepthFunc(GL_LEQUAL);
+		glDepthFunc(GL_LEQUAL);
 
-	glUseProgram(skyboxProgram.handle);
+		glUseProgram(skyboxProgram.handle);
 
-	glUniformMatrix4fv(glGetUniformLocation(skyboxProgram.handle, "projection"), 1, GL_FALSE, &projection[0][0]);
-	if ((err = glGetError()) != GL_NO_ERROR)
-		ELOG("Error getting uniform: %d\n", err);
+		glUniformMatrix4fv(glGetUniformLocation(skyboxProgram.handle, "projection"), 1, GL_FALSE, &projection[0][0]);
+		if ((err = glGetError()) != GL_NO_ERROR)
+			ELOG("Error getting uniform: %d\n", err);
 
-	glUniformMatrix4fv(glGetUniformLocation(skyboxProgram.handle, "view"), 1, GL_FALSE, &view[0][0]);
-	if ((err = glGetError()) != GL_NO_ERROR)
-		ELOG("Error getting uniform: %d\n", err);
+		glUniformMatrix4fv(glGetUniformLocation(skyboxProgram.handle, "view"), 1, GL_FALSE, &view[0][0]);
+		if ((err = glGetError()) != GL_NO_ERROR)
+			ELOG("Error getting uniform: %d\n", err);
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, app->envCubemap);
-	GLuint environmentMapLocation = glGetUniformLocation(skyboxProgram.handle, "environmentMap");
-	glUniform1i(environmentMapLocation, 0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, app->envCubemap);
+		GLuint environmentMapLocation = glGetUniformLocation(skyboxProgram.handle, "environmentMap");
+		glUniform1i(environmentMapLocation, 0);
+	}
 
 	RenderCube(app);
 
